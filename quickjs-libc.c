@@ -24,6 +24,9 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#if defined(_WIN32)
+#include <conio.h>
+#endif
 #include <stdarg.h>
 #include <inttypes.h>
 #include <string.h>
@@ -726,6 +729,15 @@ JSModuleDef *js_module_loader(JSContext *ctx,
     }
     return m;
 }
+
+#if defined(_WIN32)
+static JSValue js_std_getche(JSContext *ctx, JSValueConst this_val,
+                           int argc, JSValueConst *argv)
+{
+    int c = getche();
+    return JS_NewInt32(ctx, c);
+}
+#endif
 
 static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
@@ -1664,6 +1676,9 @@ static const JSCFunctionListEntry js_std_funcs[] = {
     JS_PROP_INT32_DEF("SEEK_END", SEEK_END, JS_PROP_CONFIGURABLE ),
     JS_OBJECT_DEF("Error", js_std_error_props, countof(js_std_error_props), JS_PROP_CONFIGURABLE),
     JS_CFUNC_DEF("__printObject", 1, js_std_file_printObject ),
+    #if defined(_WIN32)
+    JS_CFUNC_DEF("getche", 0, js_std_getche ),
+    #endif
 };
 
 static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
