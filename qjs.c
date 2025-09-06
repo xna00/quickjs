@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#include <locale.h>
 #if defined(__APPLE__)
 #include <malloc/malloc.h>
 #elif defined(__linux__) || defined(__GLIBC__)
@@ -309,6 +310,7 @@ void help(void)
 
 int main(int argc, char **argv)
 {
+    setlocale(LC_ALL, ".UTF8");
     JSRuntime *rt;
     JSContext *ctx;
     struct trace_malloc_data trace_data = { NULL };
