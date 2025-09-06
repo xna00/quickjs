@@ -373,6 +373,7 @@ static void compile_file(JSContext *ctx, FILE *fo,
 static const char main_c_template1[] =
     "int main(int argc, char **argv)\n"
     "{\n"
+    "  setlocale(LC_ALL, \".UTF8\");\n"
     "  JSRuntime *rt;\n"
     "  JSContext *ctx;\n"
     "  rt = JS_NewRuntime();\n"
@@ -771,6 +772,7 @@ int main(int argc, char **argv)
         fprintf(fo, "#include \"quickjs-libc.h\"\n"
                 "\n"
                 );
+        fprintf(fo, "#include <locale.h>\n\n");
     } else {
         fprintf(fo, "#include <inttypes.h>\n"
                 "\n"
