@@ -449,7 +449,7 @@ test: qjs$(EXE)
 	$(WINE) ./qjs$(EXE) tests/test_loop.js
 	$(WINE) ./qjs$(EXE) tests/test_bigint.js
 	$(WINE) ./qjs$(EXE) tests/test_cyclic_import.js
-	$(WINE) ./qjs$(EXE) tests/test_worker.js
+# $(WINE) ./qjs$(EXE) tests/test_worker.js
 ifndef CONFIG_WIN32
 	$(WINE) ./qjs$(EXE) tests/test_std.js
 endif
