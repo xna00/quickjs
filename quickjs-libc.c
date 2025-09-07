@@ -4185,7 +4185,7 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
             if (is_gbk) {
                 gbk_to_utf8((const unsigned char *)argv[i], strlen(argv[i]), 
                             (unsigned char **)&utf8_buf, &utf8_len);
-                print_bytes((const unsigned char *)utf8_buf, utf8_len, "utf8_buf");
+                // print_bytes((const unsigned char *)utf8_buf, utf8_len, "utf8_buf");
             } else {
                 utf8_buf = argv[i];
                 utf8_len = strlen(argv[i]);
