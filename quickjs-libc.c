@@ -24,6 +24,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <iconv.h>
 #if defined(_WIN32)
 #include <conio.h>
 #endif
@@ -4059,6 +4060,101 @@ static JSValue js_console_log(JSContext *ctx, JSValueConst this_val,
     return ret;
 }
 
+static int is_valid_gbk(const uint8_t *buf, size_t len) {
+    #if !defined(_WIN32)
+    return 0;
+    #else
+    if (buf == NULL || len == 0) {
+        return 0;
+    }
+
+    size_t i = 0;
+    while (i < len) {
+        uint8_t curr = buf[i];
+        // 1. 检查单字节（0x00-0x7F）
+        if (curr <= 0x7F) {
+            i++;
+            continue;
+        }
+        // 2. 检查双字节（高字节必须是0x81-0xFE）
+        if (curr < 0x81 || curr > 0xFE) {
+            return 0; // 高字节范围非法
+        }
+        // 3. 双字节需有后续字节（避免越界）
+        if (i + 1 >= len) {
+            return 0; // 高字节后无低字节，非法
+        }
+        // 4. 检查低字节范围（0x40-0x7E 或 0x80-0xFE）
+        uint8_t next = buf[i + 1];
+        if (!((next >= 0x40 && next <= 0x7E) || (next >= 0x80 && next <= 0xFE))) {
+            return 0; // 低字节范围非法
+        }
+        // 双字节合法，跳过两个字节
+        i += 2;
+    }
+    // 所有字节校验通过
+    return 1;
+    #endif
+}
+
+static int gbk_to_utf8(const unsigned char *gbk_buf, size_t gbk_len, 
+                unsigned char **utf8_buf, size_t *utf8_len) {
+    if (gbk_buf == NULL || gbk_len == 0 || utf8_buf == NULL || utf8_len == NULL) {
+        return -1;
+    }
+
+    // 1. 创建GBK到UTF-8的转换器
+    // 注意：部分系统GBK可能需要用"CP936"（Windows）或"GBK"（Linux）
+    iconv_t cd = iconv_open("UTF-8", "GBK");
+    if (cd == (iconv_t)-1) {
+        perror("iconv_open failed");
+        return -1;
+    }
+
+    // 2. 分配输出缓冲区（UTF-8最多占4字节/字符，预留3倍空间足够）
+    *utf8_len = gbk_len * 3;
+    *utf8_buf = (unsigned char *)malloc(*utf8_len);
+    if (*utf8_buf == NULL) {
+        perror("malloc failed");
+        iconv_close(cd);
+        return -1;
+    }
+
+    // 3. 执行转换（注意iconv的参数是指针的指针）
+    char *in_buf = (char *)gbk_buf;
+    char *out_buf = (char *)*utf8_buf;
+    size_t in_left = gbk_len;    // 剩余未转换的输入字节数
+    size_t out_left = *utf8_len; // 剩余可用的输出缓冲区大小
+
+    // iconv返回转换的字符数，-1表示出错
+    if (iconv(cd, &in_buf, &in_left, &out_buf, &out_left) == (size_t)-1) {
+        perror("iconv convert failed");
+        free(*utf8_buf);
+        *utf8_buf = NULL;
+        *utf8_len = 0;
+        iconv_close(cd);
+        return -1;
+    }
+
+    // 4. 修正实际转换后的长度（总分配长度 - 剩余空间）
+    *utf8_len -= out_left;
+    *utf8_buf[*utf8_len] = 0;
+
+    // 5. 关闭转换器
+    iconv_close(cd);
+    return 0;
+}
+
+void print_bytes(const unsigned char *buf, size_t len, const char *desc) {
+    if (buf == NULL || len == 0 || desc == NULL) return;
+    printf("%s: ", desc);
+    for (size_t i = 0; i < len; i++) {
+        printf("%02X ", buf[i]);
+    }
+    printf("\n");
+}
+
+
 void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
 {
     JSValue global_obj, console, args, performance;
@@ -4081,7 +4177,20 @@ void js_std_add_helpers(JSContext *ctx, int argc, char **argv)
     if (argc >= 0) {
         args = JS_NewArray(ctx);
         for(i = 0; i < argc; i++) {
-            JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, argv[i]));
+            char *utf8_buf = NULL;
+            size_t utf8_len = 0;
+            int is_gbk = is_valid_gbk((const uint8_t *)argv[i], strlen(argv[i]));
+            printf("is_gbk: %d\n", is_gbk);
+            print_bytes((const unsigned char *)argv[i], strlen(argv[i]), "argv[i]");
+            if (is_gbk) {
+                gbk_to_utf8((const unsigned char *)argv[i], strlen(argv[i]), 
+                            (unsigned char **)&utf8_buf, &utf8_len);
+                print_bytes((const unsigned char *)utf8_buf, utf8_len, "utf8_buf");
+            } else {
+                utf8_buf = argv[i];
+                utf8_len = strlen(argv[i]);
+            }
+            JS_SetPropertyUint32(ctx, args, i, JS_NewString(ctx, utf8_buf));
         }
         JS_SetPropertyStr(ctx, global_obj, "scriptArgs", args);
     }

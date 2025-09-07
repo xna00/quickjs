@@ -243,8 +243,8 @@ QJS_LIB_OBJS=$(OBJDIR)/quickjs.o $(OBJDIR)/dtoa.o $(OBJDIR)/libregexp.o $(OBJDIR
 
 QJS_OBJS=$(OBJDIR)/qjs.o $(OBJDIR)/repl.o $(QJS_LIB_OBJS)
 
-HOST_LIBS=-lm -ldl -lpthread
-LIBS=-lm -lpthread
+HOST_LIBS=-lm -ldl -lpthread -liconv
+LIBS=-lm -lpthread -liconv
 ifndef CONFIG_WIN32
 LIBS+=-ldl
 endif

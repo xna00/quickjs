@@ -505,6 +505,7 @@ static int output_executable(const char *out_filename, const char *cfilename,
     *arg++ = "-lm";
     *arg++ = "-ldl";
     *arg++ = "-lpthread";
+    *arg++ = "-liconv";
     *arg = NULL;
 
     if (verbose) {
