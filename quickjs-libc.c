@@ -4138,7 +4138,7 @@ static int gbk_to_utf8(const unsigned char *gbk_buf, size_t gbk_len,
 
     // 4. 修正实际转换后的长度（总分配长度 - 剩余空间）
     *utf8_len -= out_left;
-    *utf8_buf[*utf8_len] = 0;
+    // *utf8_buf[*utf8_len] = 0;
 
     // 5. 关闭转换器
     iconv_close(cd);
